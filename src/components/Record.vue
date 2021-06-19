@@ -7,6 +7,8 @@
     </div>
     <button @click="startCapture">CAPTURE!</button>
     <button @click="stopCapture">STOP!</button>
+    <button @click="startRecordStream">RECORD START!</button>
+    <button @click="stopRecordStream">RECORD STOP!</button>
   </div>
 </template>
 
@@ -24,7 +26,11 @@ export default Vue.extend({
       },
       displayStream: undefined,
       userStream: undefined,
-      capturing: false
+      capturing: false,
+      recordOption: {
+        mimeType: "video/webm; codecs=vp9",
+      },
+      mediaRecorder: undefined,
     }
   },
   methods: {
@@ -47,6 +53,31 @@ export default Vue.extend({
     cleanUpStreams: function () {
       this.displayStream = undefined;
       this.userStream = undefined;
+    },
+    startRecordStream: function () {
+      this.mediaRecorder = new MediaRecorder(this.displayStream, this.recordOption)
+      this.mediaRecorder.ondataavailable = this.handleDataAvailable
+      this.mediaRecorder.start()
+    },
+    stopRecordStream: function () {
+      this.mediaRecorder.stop()
+    },
+    handleDataAvailable(event) {
+      if (event.data.size > 0) {
+        // TODO: mediaRecorderにtimesliceを設定して, データを細切れにした方が良さそう？
+        const blob = new Blob([event.data], {type: "video/webm"})
+        this.download(blob)
+      }
+    },
+    download(blob) {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      document.body.appendChild(a)
+      a.style = "display: none";
+      a.href = url;
+      a.download = "test.webm";
+      a.click();
+      window.URL.revokeObjectURL(url);
     }
   }
 });
